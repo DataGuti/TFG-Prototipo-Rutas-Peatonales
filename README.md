@@ -66,7 +66,6 @@ Los archivos binarios de la aplicación se generan al ejecutar el notebook y se 
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-cd tfg-rutas-peatonales
 
 python -m venv .venv
 ```
