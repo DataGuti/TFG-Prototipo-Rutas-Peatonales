@@ -142,4 +142,5 @@ Los CSV originales no se incluyen por defecto en el repositorio. `data/raw/READM
 
 ## Autor
 
-Agustín Vidaurreta — Trabajo Final de Grado.
+Agustín Vidaurreta.
+Contexto de Trabajo Final de Grado.
