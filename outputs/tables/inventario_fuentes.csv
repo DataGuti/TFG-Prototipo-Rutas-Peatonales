@@ -1,0 +1,11 @@
+﻿archivo,anio_detectado,registros,columnas,encoding,separador,nombres_columnas
+delitos_2016 (1).csv,2016,154712,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2017 (1).csv,2017,146938,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2018 (1).csv,2018,149455,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2019 (1).csv,2019,149524,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2020 (1).csv,2020,86175,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2021 (1).csv,2021,111962,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2022 (1).csv,2022,140918,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2023 (1).csv,2023,155897,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2024 (2).csv,2024,158838,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad
+delitos_2025 (2).csv,2025,133203,15,utf-8,"','",id-mapa | anio | mes | dia | fecha | franja | tipo | subtipo | uso_arma | uso_moto | barrio | comuna | latitud | longitud | cantidad

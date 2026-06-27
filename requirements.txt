@@ -1,0 +1,17 @@
+pandas
+numpy
+geopandas
+matplotlib
+scipy
+shapely
+osmnx
+networkx
+scikit-learn
+tqdm
+pyarrow
+jupyterlab
+ipykernel
+streamlit
+streamlit-folium
+folium
+branca

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Datos originales y procesados
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+
+# Artefactos binarios regenerables
+outputs/models/*
+!outputs/models/README.md
+app/*.pkl
+app/*.npz
+app/*.graphml
+
+# Temporales y registros
+*.tmp
+*.log
