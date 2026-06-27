@@ -24,7 +24,6 @@ data/processed/*
 # Artefactos binarios regenerables
 outputs/models/*
 !outputs/models/README.md
-app/*.pkl
 app/*.npz
 app/*.graphml
 
