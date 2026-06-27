@@ -133,7 +133,7 @@ Los CSV originales no se incluyen por defecto en el repositorio. `data/raw/READM
 
 ## Limitaciones
 
-- Los registros oficiales pueden presentar subregistro, cambios de clasificación y diferencias entre años.
+- Los registros oficiales pueden presentar cambios de clasificación y diferencias entre años.
 - Los hechos sin coordenadas válidas no participan del análisis espacial.
 - El KDE suaviza la distribución observada y no modela barreras urbanas de manera explícita.
 - El modelo base no pondera de forma diferenciada las tipologías delictivas.
