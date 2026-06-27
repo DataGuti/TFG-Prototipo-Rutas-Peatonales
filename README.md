@@ -91,11 +91,10 @@ python -m pip install -r requirements.txt
 
 ## Ejecución del flujo analítico
 
-1. Colocar los CSV originales en `data/raw/`.
-2. Abrir `notebooks/01_pipeline_analitico.ipynb`.
-3. Reiniciar el kernel y ejecutar todas las celdas en orden.
-4. Verificar la generación de tablas, figuras y artefactos.
-5. Confirmar que los archivos `.pkl` hayan sido copiados a `app/`.
+1. Abrir `notebooks/01_pipeline_analitico.ipynb`.
+2. Reiniciar el kernel y ejecutar todas las celdas en orden.
+3. Verificar la generación de tablas, figuras y artefactos.
+4. Confirmar que los archivos `.pkl` hayan sido copiados a `app/`.
 
 ```bash
 jupyter lab
