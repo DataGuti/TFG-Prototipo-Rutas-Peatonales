@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,6 +29,15 @@ GRAPH_PATH = BASE_DIR / "grafo_peatonal_con_ier.pkl"
 EDGES_PATH = BASE_DIR / "segmentos_ier_wgs84.pkl"
 
 CENTRO_CABA = (-34.6037, -58.3816)
+
+# Evita que una consulta al geocodificador permanezca bloqueada
+# durante el timeout predeterminado de OSMnx.
+GEOCODING_TIMEOUT_SECONDS = 15
+ox.settings.requests_timeout = GEOCODING_TIMEOUT_SECONDS
+
+# Distancia máxima admitida entre una ubicación geocodificada
+# y el nodo más cercano de la red peatonal.
+MAX_DISTANCIA_RED_METROS = 1000.0
 
 COLOR_RUTA_BASE = "#cc1111"
 COLOR_RUTA_IER = "#25e000"
@@ -459,6 +469,44 @@ except Exception as error:
 # ============================================================
 # FUNCIONES AUXILIARES
 # ============================================================
+
+class CamposUbicacionVaciosError(ValueError):
+    """Uno o ambos campos obligatorios no fueron completados."""
+
+    def __init__(self, campos: list[str]) -> None:
+        self.campos = campos
+        super().__init__("Faltan campos obligatorios.")
+
+
+class UbicacionNoEncontradaError(ValueError):
+    """Una dirección no pudo resolverse o vincularse con la red."""
+
+    def __init__(self, campo: str, texto: str) -> None:
+        self.campo = campo
+        self.texto = texto
+        super().__init__(
+            f"No se encontró la dirección de {campo} dentro de CABA "
+            "o no pudo asociarse con la red peatonal disponible. "
+            "Revisá la calle y la altura, agregá el barrio o ingresá "
+            "coordenadas en formato latitud, longitud."
+        )
+
+
+class ServicioGeocodificacionError(ConnectionError):
+    """El servicio externo de geocodificación no respondió a tiempo."""
+
+    def __init__(self, campo: str) -> None:
+        self.campo = campo
+        super().__init__(
+            f"No fue posible validar la dirección de {campo} porque "
+            "el servicio de geocodificación no respondió. "
+            "Reintentá la consulta o ingresá coordenadas."
+        )
+
+
+class RutaNoGeneradaError(RuntimeError):
+    """Las ubicaciones son válidas, pero falló el cálculo o renderizado."""
+
 
 def formato_decimal(
     valor: float,
@@ -929,10 +977,13 @@ def interpretar_coordenadas(
 )
 def geocodificar(
     texto: str,
+    campo: str,
 ) -> tuple[float, float]:
     """
     Acepta una dirección o coordenadas.
-    Para direcciones utiliza el geocodificador de OSMnx.
+    Para direcciones utiliza el geocodificador de OSMnx con
+    un timeout acotado y conserva el nombre del campo para
+    mostrar mensajes específicos de origen o destino.
     """
     texto = normalizar_texto_ubicacion(
         texto
@@ -949,11 +1000,118 @@ def geocodificar(
         f"{texto}, Ciudad Autónoma de Buenos Aires, Argentina"
     )
 
-    latitud, longitud = ox.geocode(
-        consulta
-    )
+    try:
+        resultado = ox.geocode(
+            consulta
+        )
+
+    except Exception as error:
+        nombre_error = type(error).__name__.lower()
+        mensaje_error = str(error).lower()
+
+        es_timeout_o_conexion = any(
+            termino in nombre_error or termino in mensaje_error
+            for termino in (
+                "timeout",
+                "connection",
+                "connect",
+                "read timed out",
+                "temporarily unavailable",
+            )
+        )
+
+        if es_timeout_o_conexion:
+            raise ServicioGeocodificacionError(
+                campo
+            ) from error
+
+        raise UbicacionNoEncontradaError(
+            campo=campo,
+            texto=texto,
+        ) from error
+
+    if (
+        resultado is None
+        or len(resultado) != 2
+        or not all(np.isfinite(valor) for valor in resultado)
+    ):
+        raise UbicacionNoEncontradaError(
+            campo=campo,
+            texto=texto,
+        )
+
+    latitud, longitud = resultado
 
     return float(latitud), float(longitud)
+
+
+def distancia_haversine_metros(
+    coordenadas_a: tuple[float, float],
+    coordenadas_b: tuple[float, float],
+) -> float:
+    """Calcula la distancia aproximada entre dos coordenadas WGS84."""
+    latitud_a, longitud_a = np.radians(
+        coordenadas_a
+    )
+    latitud_b, longitud_b = np.radians(
+        coordenadas_b
+    )
+
+    diferencia_latitud = latitud_b - latitud_a
+    diferencia_longitud = longitud_b - longitud_a
+
+    valor_a = (
+        np.sin(diferencia_latitud / 2) ** 2
+        + np.cos(latitud_a)
+        * np.cos(latitud_b)
+        * np.sin(diferencia_longitud / 2) ** 2
+    )
+
+    return float(
+        2
+        * 6_371_000
+        * np.arctan2(
+            np.sqrt(valor_a),
+            np.sqrt(1 - valor_a),
+        )
+    )
+
+
+def asociar_ubicacion_con_red(
+    grafo: Any,
+    coordenadas: tuple[float, float],
+    campo: str,
+    texto: str,
+) -> int:
+    """
+    Vincula una ubicación con el nodo más cercano y rechaza
+    coordenadas fuera del alcance razonable de la red de CABA.
+    """
+    latitud, longitud = coordenadas
+
+    nodo = ox.distance.nearest_nodes(
+        grafo,
+        X=longitud,
+        Y=latitud,
+    )
+
+    coordenadas_nodo = (
+        float(grafo.nodes[nodo]["y"]),
+        float(grafo.nodes[nodo]["x"]),
+    )
+
+    distancia_red = distancia_haversine_metros(
+        coordenadas,
+        coordenadas_nodo,
+    )
+
+    if distancia_red > MAX_DISTANCIA_RED_METROS:
+        raise UbicacionNoEncontradaError(
+            campo=campo,
+            texto=texto,
+        )
+
+    return nodo
 
 
 def actualizar_costos(
@@ -1494,17 +1652,36 @@ def calcular_resultado(
                 mensaje,
             )
 
+    campos_faltantes = []
+
+    if not origen_texto.strip():
+        campos_faltantes.append(
+            "origen"
+        )
+
+    if not destino_texto.strip():
+        campos_faltantes.append(
+            "destino"
+        )
+
+    if campos_faltantes:
+        raise CamposUbicacionVaciosError(
+            campos_faltantes
+        )
+
     informar(
         10,
         "1 de 6 · Geocodificando origen y destino...",
     )
 
     coordenadas_origen = geocodificar(
-        origen_texto
+        texto=origen_texto,
+        campo="origen",
     )
 
     coordenadas_destino = geocodificar(
-        destino_texto
+        texto=destino_texto,
+        campo="destino",
     )
 
     informar(
@@ -1512,72 +1689,85 @@ def calcular_resultado(
         "2 de 6 · Asociando ubicaciones con la red peatonal...",
     )
 
-    nodo_origen = ox.distance.nearest_nodes(
-        G,
-        X=coordenadas_origen[1],
-        Y=coordenadas_origen[0],
-    )
-
-    nodo_destino = ox.distance.nearest_nodes(
-        G,
-        X=coordenadas_destino[1],
-        Y=coordenadas_destino[0],
-    )
-
-    informar(
-        40,
-        "3 de 6 · Calculando costos relativos por segmento...",
-    )
-
-    actualizar_costos(
+    nodo_origen = asociar_ubicacion_con_red(
         grafo=G,
-        alpha=alpha,
-        franja_seleccionada=franja_seleccionada,
+        coordenadas=coordenadas_origen,
+        campo="origen",
+        texto=origen_texto,
     )
 
-    informar(
-        55,
-        "4 de 6 · Generando ruta base y alternativa ponderada...",
-    )
-
-    ruta_base_nodos = nx.shortest_path(
-        G,
-        source=nodo_origen,
-        target=nodo_destino,
-        weight="length",
-    )
-
-    ruta_ier_nodos = nx.shortest_path(
-        G,
-        source=nodo_origen,
-        target=nodo_destino,
-        weight="costo_seguridad",
-    )
-
-    ruta_base_aristas = obtener_aristas_ruta(
+    nodo_destino = asociar_ubicacion_con_red(
         grafo=G,
-        nodos_ruta=ruta_base_nodos,
-        atributo_peso="length",
+        coordenadas=coordenadas_destino,
+        campo="destino",
+        texto=destino_texto,
     )
 
-    ruta_ier_aristas = obtener_aristas_ruta(
-        grafo=G,
-        nodos_ruta=ruta_ier_nodos,
-        atributo_peso="costo_seguridad",
-    )
+    try:
+        informar(
+            40,
+            "3 de 6 · Calculando costos relativos por segmento...",
+        )
 
-    informar(
-        70,
-        "5 de 6 · Calculando métricas comparativas...",
-    )
+        actualizar_costos(
+            grafo=G,
+            alpha=alpha,
+            franja_seleccionada=franja_seleccionada,
+        )
 
-    metricas_base = calcular_metricas_ruta(
-        ruta_base_aristas
-    )
+        informar(
+            55,
+            "4 de 6 · Generando ruta base y alternativa ponderada...",
+        )
 
-    metricas_ier = calcular_metricas_ruta(
-        ruta_ier_aristas
-    )
+        ruta_base_nodos = nx.shortest_path(
+            G,
+            source=nodo_origen,
+            target=nodo_destino,
+            weight="length",
+        )
+
+        ruta_ier_nodos = nx.shortest_path(
+            G,
+            source=nodo_origen,
+            target=nodo_destino,
+            weight="costo_seguridad",
+        )
+
+        ruta_base_aristas = obtener_aristas_ruta(
+            grafo=G,
+            nodos_ruta=ruta_base_nodos,
+            atributo_peso="length",
+        )
+
+        ruta_ier_aristas = obtener_aristas_ruta(
+            grafo=G,
+            nodos_ruta=ruta_ier_nodos,
+            atributo_peso="costo_seguridad",
+        )
+
+        informar(
+            70,
+            "5 de 6 · Calculando métricas comparativas...",
+        )
+
+        metricas_base = calcular_metricas_ruta(
+            ruta_base_aristas
+        )
+
+        metricas_ier = calcular_metricas_ruta(
+            ruta_ier_aristas
+        )
+
+    except nx.NetworkXNoPath:
+        raise
+
+    except Exception as error:
+        raise RutaNoGeneradaError(
+            "Ambas direcciones fueron validadas, pero ocurrió "
+            "un problema técnico al generar las rutas o calcular "
+            "sus métricas. Reintentá la consulta en unos minutos."
+        ) from error
 
     distancia_base = metricas_base[
         "distancia_metros"
@@ -1754,7 +1944,30 @@ with col_controles:
             type="primary",
         )
 
+    campos_faltantes_formulario: list[str] = []
+
     if procesar:
+        if not origen.strip():
+            campos_faltantes_formulario.append(
+                "origen"
+            )
+
+        if not destino.strip():
+            campos_faltantes_formulario.append(
+                "destino"
+            )
+
+        if "origen" in campos_faltantes_formulario:
+            st.error(
+                "Ingresá la dirección de origen antes de generar las rutas."
+            )
+
+        if "destino" in campos_faltantes_formulario:
+            st.error(
+                "Ingresá la dirección de destino antes de generar las rutas."
+            )
+
+    if procesar and not campos_faltantes_formulario:
         st.session_state.pop(
             "resultado",
             None,
@@ -1846,20 +2059,87 @@ with col_controles:
                 "Actualizando mapa e interfaz...",
             )
 
-        except nx.NetworkXNoPath:
+        except CamposUbicacionVaciosError as error:
+            estado_carga.update(
+                label="Faltan datos obligatorios.",
+                state="error",
+                expanded=True,
+            )
+
+            if "origen" in error.campos:
+                st.error(
+                    "Ingresá la dirección de origen antes de generar las rutas."
+                )
+
+            if "destino" in error.campos:
+                st.error(
+                    "Ingresá la dirección de destino antes de generar las rutas."
+                )
+
+        except UbicacionNoEncontradaError as error:
             estado_carga.update(
                 label=(
-                    "No fue posible encontrar "
-                    "una conexión peatonal válida."
+                    f"No se encontró la dirección de {error.campo}."
                 ),
                 state="error",
                 expanded=True,
             )
 
             st.error(
-                "No fue posible encontrar una conexión "
-                "peatonal válida entre los puntos indicados."
+                str(error)
             )
+
+        except ServicioGeocodificacionError as error:
+            estado_carga.update(
+                label=(
+                    f"No fue posible validar la dirección de {error.campo}."
+                ),
+                state="error",
+                expanded=True,
+            )
+
+            st.error(
+                str(error)
+            )
+
+        except nx.NetworkXNoPath:
+            estado_carga.update(
+                label=(
+                    "Las ubicaciones son válidas, pero no existe "
+                    "una conexión peatonal disponible."
+                ),
+                state="error",
+                expanded=True,
+            )
+
+            st.error(
+                "Las direcciones de origen y destino son válidas, "
+                "pero no fue posible encontrar una ruta peatonal "
+                "que conecte ambos puntos dentro de la red disponible."
+            )
+
+        except RutaNoGeneradaError as error:
+            estado_carga.update(
+                label="Ocurrió un problema técnico al generar las rutas.",
+                state="error",
+                expanded=True,
+            )
+
+            st.error(
+                str(error)
+            )
+
+            with st.expander(
+                "Detalle técnico del error"
+            ):
+                if error.__cause__ is not None:
+                    st.exception(
+                        error.__cause__
+                    )
+                else:
+                    st.exception(
+                        error
+                    )
 
         except Exception as error:
             estado_carga.update(
@@ -1869,8 +2149,8 @@ with col_controles:
             )
 
             st.error(
-                "No fue posible procesar la consulta. "
-                "Revisá las ubicaciones ingresadas."
+                "Ocurrió un error inesperado al procesar la consulta. "
+                "Reintentá en unos minutos."
             )
 
             with st.expander(
