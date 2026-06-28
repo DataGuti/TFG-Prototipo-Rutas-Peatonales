@@ -21,9 +21,6 @@ data/raw/*
 data/processed/*
 !data/processed/README.md
 
-# Artefactos binarios regenerables
-outputs/models/*
-!outputs/models/README.md
 app/*.npz
 app/*.graphml
 
