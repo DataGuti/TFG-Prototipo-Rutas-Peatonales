@@ -1,0 +1,29 @@
+{
+  "crs_coordenadas": "EPSG:4326",
+  "crs_metrico": "EPSG:32721",
+  "tamanio_celda_m": 100,
+  "bandwidth_m": 750,
+  "margen_m": 3000,
+  "paso_muestreo_segmento_m": 25,
+  "agregacion_segmento": "media",
+  "alpha": 3.0,
+  "franjas_horarias": {
+    "Madrugada": [
+      0,
+      5
+    ],
+    "Mañana": [
+      6,
+      11
+    ],
+    "Tarde": [
+      12,
+      17
+    ],
+    "Noche": [
+      18,
+      23
+    ]
+  },
+  "semilla": 42
+}
