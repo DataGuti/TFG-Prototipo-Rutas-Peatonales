@@ -9,7 +9,7 @@ segmentos_ier_wgs84.pkl
 
 El notebook los genera y copia automáticamente al ejecutar la sección de exportación.
 
-Desde la raíz del repositorio:
+Para ejecutar la aplicación localmente, se puede ejecutar el siguiente comando de consola desde la raíz del repositorio:
 
 ```bash
 streamlit run app/app.py
