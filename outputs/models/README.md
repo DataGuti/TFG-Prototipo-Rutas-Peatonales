@@ -8,4 +8,4 @@ La ejecución del notebook genera en esta carpeta:
 - `superficies_ier.npz`;
 - `parametros_finales.json`.
 
-Los archivos `.pkl`, `.npz` y `.graphml` pueden ser grandes y se excluyen de Git por defecto. Para distribuirlos puede utilizarse Git LFS, una release del repositorio o el almacenamiento en la nube asociado a la entrega.
+Los archivos `.pkl`, `.npz` y `.graphml` pueden ser grandes y se excluyen de este Git por defecto.
