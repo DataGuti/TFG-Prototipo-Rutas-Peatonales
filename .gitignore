@@ -18,8 +18,6 @@ Thumbs.db
 # Datos originales y procesados
 data/raw/*
 !data/raw/README.md
-data/processed/*
-!data/processed/README.md
 
 # Artefactos binarios regenerables
 outputs/models/*
