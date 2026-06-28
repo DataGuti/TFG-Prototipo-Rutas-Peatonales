@@ -35,8 +35,8 @@ La interfaz permite:
 Abrir **Símbolo del sistema de Windows (CMD)** y copiar el siguiente bloque completo:
 
 ```bat
-git clone <INCORPORAR_URL_DEL_REPOSITORIO>
-cd <INCORPORAR_NOMBRE_DEL_REPOSITORIO>
+git clone https://github.com/DataGuti/TFG-Prototipo-Rutas-Peatonales.git
+cd TFG-Prototipo-Rutas-Peatonales
 python -m venv .venv
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
