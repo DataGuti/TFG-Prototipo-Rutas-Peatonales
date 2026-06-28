@@ -287,8 +287,7 @@ http://localhost:8501
 ## Recursos de la entrega
 
 - **Aplicación web:** [Abrir el prototipo](https://tfg-agustin-vidaurreta-rutas-peatonales.streamlit.app/)
-- **Repositorio de GitHub:** [Ver el código](<INCORPORAR_URL_DEL_REPOSITORIO>)
-- **Paquete completo y video demostrativo:** [Abrir Google Drive](<INCORPORAR_URL_DE_GOOGLE_DRIVE>)
+- **Paquete completo y video demostrativo:** [Abrir Google Drive](https://drive.google.com/drive/folders/1AWPM5KhK41aJAZ75oNUx3p6b428p8K3M?usp=drive_link)
 
 ---
 
